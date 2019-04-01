@@ -42,6 +42,7 @@ object QueryEngine {
     try {
       println("********Welcome to  UofA Watson********")
       val objQueryEngine: QueryEngine = new QueryEngine()
+      objQueryEngine.parseDocuments()
 //      val ans2: ListBuffer[ResultClass] = objQueryEngine.runQ1(query13a)
     } catch {
       case ex: Exception => println(ex.getMessage)
@@ -50,6 +51,10 @@ object QueryEngine {
 }
 
 class QueryEngine() {
+
+  def parseDocuments(): Unit = {
+    
+  }
 
   def indexDocuments(w: IndexWriter): Unit = {
     val source = Source.fromInputStream(getClass.getClassLoader.getResourceAsStream(input_file))
