@@ -41,6 +41,7 @@ object QueryEngine {
   def main(args: Array[String]): Unit = {
     try {
       println("********Welcome to  UofA Watson********")
+      val dataDirectory = ""
       val objQueryEngine: QueryEngine = new QueryEngine()
       objQueryEngine.parseDocuments()
 //      val ans2: ListBuffer[ResultClass] = objQueryEngine.runQ1(query13a)
@@ -53,7 +54,7 @@ object QueryEngine {
 class QueryEngine() {
 
   def parseDocuments(): Unit = {
-    
+
   }
 
   def indexDocuments(w: IndexWriter): Unit = {
