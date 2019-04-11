@@ -16,303 +16,312 @@ import org.apache.lucene.queryparser.classic.ParseException
 import org.apache.lucene.queryparser.classic.QueryParser
 import org.apache.lucene.search.IndexSearcher
 import org.apache.lucene.search.TopScoreDocCollector
-import org.apache.lucene.store.RAMDirectory
+import org.apache.lucene.store.FSDirectory
 import org.apache.lucene.index.IndexWriterConfig.OpenMode
 import org.apache.lucene.search.Query
 import org.apache.lucene.search.ScoreDoc
 import org.apache.lucene.search.TopDocs
 import org.apache.lucene.store.Directory
 
+import scala.io.StdIn
 import scala.collection.mutable.ListBuffer
 import java.io.File
+import java.io.FileReader
+import java.io.FileInputStream
 import java.nio.file.{Files, Paths}
 import java.io.IOException
+import java.security.KeyStore.TrustedCertificateEntry
 import java.util.Scanner
 
 import QueryEngine._
 import org.apache.lucene.util.BytesRef
 
 import scala.io.Source
-import scala.collection.mutable.{ArrayBuffer, ListBuffer}
-import scala.collection.immutable
+import scala.collection.mutable.{ArrayBuffer, ListBuffer, StringBuilder}
+import scala.collection.{immutable, mutable}
+import scala.util.matching.Regex
 
-object QueryEngine {
+class ibmWatson() {
 
-  def main(args: Array[String]): Unit = {
-    try {
-      println("********Welcome to  UofA Watson********")
-      val dataDirectory = ""
-      val objQueryEngine: QueryEngine = new QueryEngine()
-      objQueryEngine.parseDocuments()
-//      val ans2: ListBuffer[ResultClass] = objQueryEngine.runQ1(query13a)
-    } catch {
+  // Variable definitions
+  // Indexing related
+  val filePath = "/Users/pratikbhandari/Documents/UofA/Semester II/Classes/CSC 583 - Text Retrieval and Web Search/Project/Project1/testFolder"
+  val indexDir = "indexDir"
+  var isIndexed = false
+
+  // Flags for category and content indexing
+  var printCategory = false
+  var printContent = false
+
+  // Document headings
+  var title = new StringBuilder()
+  var contents = new StringBuilder()
+  var category = new StringBuilder()
+
+
+  def main(): Unit =
+  {
+    var result = 0
+    var loopFlag = false
+
+    // For Indexing
+    val analyzer = new StandardAnalyzer
+    val index: FSDirectory = FSDirectory.open(Paths.get(indexDir))
+    val config = new IndexWriterConfig(analyzer)
+    config.setOpenMode(OpenMode.CREATE)
+    val w = new IndexWriter(index, config)
+
+    // First execute the indexing operation
+    result = performIndexing(w)
+
+    // Query the user about the task they want to perform
+    while (!loopFlag) {
+
+      // Ask the user about what they want to do
+      println("1. Calculate the accuracy of the model.")
+      println("2. Enter search query on naive model.")
+      println("3. Exit")
+      println("Please enter the desired option number:")
+
+      // Get the user's input
+      val userInput = StdIn.readLine().toInt
+
+      userInput match {
+        case 1 => checkAccuracy()
+        case 2 => searchNaive()
+        case 3 => loopFlag = true
+        case invIp => println("Invalid input: " + invIp.toString)
+      }
+    }
+
+//    val testQuery = "The practice of pre-authorizing presidential use of force dates to a 1955 resolution re: this island near mainland China"
+//    val queryStr = testQuery.toLowerCase().replaceAll("""[\p{Punct}&&[^.]]""", "")
+//    val totalHits = 20
+//
+//    val q = new QueryParser("CONTENTS", analyzer).parse(queryStr)
+//    val reader: IndexReader = DirectoryReader.open(index)
+//    val searcher: IndexSearcher = new IndexSearcher(reader)
+//    val collector = TopScoreDocCollector.create(totalHits)
+//    searcher.search(q, collector)
+//    val hits = collector.topDocs().scoreDocs
+//
+//    for (hit <- hits) {
+//      val docId = hit.doc
+//      val score = hit.score
+//      if (score > 0) {
+//        val doc = searcher.doc(docId)
+//        println(doc.get("TITLE") + "\t" + score)
+//      }
+//    }
+//    reader.close()
+
+  }
+
+  def checkAccuracy(): Unit =
+  {
+
+
+  }
+
+  def searchNaive(): Unit =
+  {
+    
+
+  }
+
+  def performIndexing(w: IndexWriter): Int =
+  {
+    // First, check if the documents have already been indexed
+    val indexDr = new File(indexDir)
+    if (indexDr.exists())
+    {
+      isIndexed = true
+    }
+
+    // If documents have not been indexed yet, index the documents
+    if (!isIndexed)
+    {
+      println("Indexing document collection for the first time. Please wait...")
+      indexDocuments(w)
+      println("Indexing Complete!")
+    }
+
+    return 1
+  }
+
+  def indexDocuments(w: IndexWriter): Unit =
+  {
+    // The wikipedia entries are stored outside the project folder and will only be indexed once to create the index files
+    val fileList = new File(filePath).listFiles()
+    var fileNames = new ListBuffer[String]()
+
+    // Go through each file inside the directory, check if they conform to the file standards and append them to the fileList
+    for (filename <- fileList)
+    {
+      if (filename.isFile() && filename.getName().endsWith(".txt"))
+      {
+        fileNames += filename.getAbsolutePath()
+      }
+    }
+    // Now use the fileList to parse the documents
+    parseDocuments(fileNames, w)
+    w.close()
+  }
+
+  def loadDocument(w: IndexWriter, title: String, category: String, contents: String): Unit =
+  {
+    val doc: Document = new Document()
+    doc.add(new StringField("TITLE", title, Field.Store.YES))
+    doc.add(new TextField("CATEGORY", category, Field.Store.YES))
+    doc.add(new TextField("CONTENTS", contents, Field.Store.YES))
+    w.addDocument(doc)
+    println("Document "+title+" added!")
+  }
+
+  def parseLine(line: String, w: IndexWriter, file: String): Unit =
+  {
+    try
+    {
+      if(line.startsWith("[[") && line.endsWith("]]"))
+      {
+        val titleText = line.substring(2,line.length-2)
+        if (title.nonEmpty && contents.nonEmpty)
+        {
+          if (category.isEmpty)
+          {
+            loadDocument(w, title.toString(), "", contents.toString())
+          }
+          else
+          {
+            loadDocument(w, title.toString(), category.toString(), contents.toString())
+          }
+          clearBuffers()
+        }
+
+        title = new StringBuilder(titleText)
+        printCategory = true
+        printContent = true
+      }
+      else if (line.isEmpty())
+      {
+        // We are neglecting blank lines
+        return
+      }
+      else if (line.contains("#redirect"))
+      {
+        // For now, we are neglecting any lines that redirect to other topics
+        // TODO Work on this
+        return
+      }
+      else if (line.contains("categories"))
+      {
+        // TODO Perform lemmatization to the categories using Stanford's CoreNLP
+        // For now, just removing punctuation marks
+        if (printCategory)
+        {
+          val subCat = line.substring(line.indexOf(":")+2)
+          val catStr = subCat.replaceAll("""[\p{Punct}&&[^.]]""", "")
+          category = new StringBuilder(catStr)
+          printCategory = false
+        }
+        else
+        {
+          val catStr = line.replaceAll("""[\p{Punct}&&[^.]]""", "")
+          category.append(catStr)
+        }
+      }
+      else if (line.matches("^==.*==$"))
+      {
+        // Neglecting all the text in the form of == SOME TEXT ==
+        // TODO Do something about this?
+        return
+      }
+      else //Everything else is the content
+      {
+        if(printContent)
+        {
+          // TODO Perform lemmatization to the categories using Stanford's CoreNLP
+          // For now, just removing punctuation marks
+          val contentStr = line.replaceAll("""[\p{Punct}&&[^.]]""", "")
+          contents = new StringBuilder(contentStr)
+          printContent = false
+        }
+        else
+        // TODO Handle /tpl
+        {
+          val contentStr = line.replaceAll("""[\p{Punct}&&[^.]]""", "")
+          contents.append(contentStr)
+        }
+      }
+    }
+    catch
+      {
       case ex: Exception => println(ex.getMessage)
+      }
+  }
+
+  def parseDocuments(fileNames: ListBuffer[String], w: IndexWriter): Unit =
+  {
+    for (file <- fileNames)
+    {
+      try
+      {
+        var line: String = null
+        val fileObject = new FileReader(file)
+        val fileBuffer = new BufferedReader(fileObject)
+        val fileBr =  new BufferedReader(new InputStreamReader(new FileInputStream(file), "UTF-8"))
+//        val outFile = new File("output.txt")
+//        val fileOutStream = new FileOutputStream(outFile)
+//        val writeBuffer = new BufferedWriter(null)
+//        var skip = false
+
+        while ( {line = fileBuffer.readLine; line != null})
+        {
+          parseLine(line.toLowerCase(), w, file)
+        }
+        fileBuffer.close()
+      }
+      catch
+        {
+        case ex: Exception => println(ex.getMessage)
+        }
     }
   }
+
+  def clearBuffers(): Unit = {
+
+    if (title.nonEmpty)
+    {
+      title.setLength(0)
+    }
+    if (contents.nonEmpty)
+    {
+      contents.setLength(0)
+    }
+    if (category.nonEmpty)
+    {
+      category.setLength(0)
+    }
+  }
+
 }
 
-class QueryEngine() {
 
-  def parseDocuments(): Unit = {
+object QueryEngine
+{
+  def main(args: Array[String]): Unit = {
 
+    // Welcome Message
+    println("######################################################")
+    println("######################################################\n")
+    println("Welcome to IBM Watson - The Course Project for CSC 583\n")
+    println("######################################################")
+    println("######################################################\n")
+
+    // Start: Create an object for class ibmWatson
+    val objWatson: ibmWatson = new ibmWatson()
+
+    // All computation done from ibmWatson's main
+    objWatson.main()
   }
-
-  def indexDocuments(w: IndexWriter): Unit = {
-    val source = Source.fromInputStream(getClass.getClassLoader.getResourceAsStream(input_file))
-    // Read in the file line by line
-    for(line <- source.getLines()) {
-      val doc: Document = new Document()
-      val wordList: Array[String] = line.split(" ")
-      val docID = wordList(0)
-      val textList: Array[String] = wordList.slice(1, wordList.length)
-      val textString = textList.mkString(" ")
-      doc.add(new TextField("title", textString, Field.Store.YES))
-      doc.add(new StringField("docid", docID, Field.Store.YES))
-      w.addDocument(doc)
-
-    }
-    source.close()
-  }
-
-  def runQ1(query: List[String]): ListBuffer[ResultClass] = {
-
-    // USING DEFAULT SIMILARITY MODEL
-    var doc_score_list = new ListBuffer[ResultClass]()
-    val analyzer = new StandardAnalyzer
-
-    val index = new RAMDirectory
-    val config = new IndexWriterConfig(analyzer)
-    config.setOpenMode(OpenMode.CREATE)
-
-    val w = new IndexWriter(index, config)
-    indexDocuments(w)
-
-    w.close()
-
-    val queryString = query.mkString(" ")
-    val q = new QueryParser("title", analyzer).parse(queryString)
-
-
-    val totalHits: Int = 10
-    val reader: IndexReader = DirectoryReader.open(index)
-    val searcher: IndexSearcher = new IndexSearcher(reader)
-
-    val collector = TopScoreDocCollector.create(totalHits)
-    searcher.search(q, collector)
-
-    val hits = collector.topDocs().scoreDocs
-
-    var count = 1
-    println("Query Results: Problem 1a")
-    System.out.println("Found " + hits.length + " hits.")
-    for (hit <- hits) {
-      val objResultClass: ResultClass = new ResultClass()
-      val docId: Int = hit.doc
-      val score = hit.score
-      if (score > 0) {
-        val doc = searcher.doc(docId)
-        objResultClass.DocName = doc
-        objResultClass.doc_score = score
-        doc_score_list += objResultClass
-        println("Hit Number: " + count + " - Document Name: " + objResultClass.DocName.get("docid") + ", Score: " + score)
-        count += 1
-      }
-    }
-    println("\n")
-    reader.close()
-
-    // USING TFIDF SIMILARITY MODEL
-    var doc_score_list_2 = new ListBuffer[ResultClass]()
-    val analyzer_2 = new StandardAnalyzer
-
-    val index_2 = new RAMDirectory
-    val config_2 = new IndexWriterConfig(analyzer_2)
-    config_2.setOpenMode(OpenMode.CREATE)
-    config_2.setSimilarity(new ClassicSimilarity)
-    val w_2 = new IndexWriter(index_2, config_2)
-    indexDocuments(w_2)
-
-    w_2.close()
-
-    val queryString_2 = query.mkString(" ")
-    val q_2 = new QueryParser("title", analyzer_2).parse(queryString_2)
-
-
-    val totalHits_2: Int = 10
-    val reader_2: IndexReader = DirectoryReader.open(index_2)
-    val searcher_2: IndexSearcher = new IndexSearcher(reader_2)
-    searcher_2.setSimilarity(new ClassicSimilarity)
-
-    val collector_2 = TopScoreDocCollector.create(totalHits_2)
-    searcher_2.search(q_2, collector_2)
-
-    val hits_2 = collector_2.topDocs().scoreDocs
-
-    var count_2 = 1
-    println("Query Results: Problem 1a - TFIDF")
-    System.out.println("Found " + hits_2.length + " hits.")
-    for (hit_2 <- hits_2) {
-      val objResultClass_2: ResultClass = new ResultClass()
-      val docId_2: Int = hit_2.doc
-      val score_2 = hit_2.score
-      if (score_2 > 0) {
-        val doc_2 = searcher_2.doc(docId_2)
-        objResultClass_2.DocName = doc_2
-        objResultClass_2.doc_score = score_2
-        doc_score_list_2 += objResultClass_2
-        println("Hit Number: " + count_2 + " - Document Name: " + objResultClass_2.DocName.get("docid") + ", Score: " + score_2)
-        count_2 += 1
-      }
-    }
-    println("\n")
-    reader_2.close()
-
-    return doc_score_list
-  }
-
-
-  def runQ13a(query: List[String]): ListBuffer[ResultClass] = {
-
-    var doc_list = new ListBuffer[ResultClass]()
-    val analyzer = new StandardAnalyzer
-
-    val index = new RAMDirectory
-    val config = new IndexWriterConfig(analyzer)
-    config.setOpenMode(OpenMode.CREATE)
-
-    val w = new IndexWriter(index, config)
-    indexDocuments(w)
-
-    w.close()
-
-    val queryString = "\"" + query(0) + "\" AND \"" + query(1) + "\""
-    val q = new QueryParser("title", analyzer).parse(queryString)
-
-    val totalHits: Int = 10
-    val reader: IndexReader = DirectoryReader.open(index)
-    val searcher: IndexSearcher = new IndexSearcher(reader)
-
-    val collector = TopScoreDocCollector.create(totalHits)
-    searcher.search(q, collector)
-
-    val hits = collector.topDocs().scoreDocs
-
-    var count = 1
-    println("Query Results: Problem 13a")
-    System.out.println("Found " + hits.length + " hits.")
-    for (hit <- hits) {
-      val objResultClass: ResultClass = new ResultClass()
-      val docId: Int = hit.doc
-      val score = hit.score
-      if (score > 0) {
-        val doc = searcher.doc(docId)
-        objResultClass.DocName = doc
-        objResultClass.doc_score = score
-        doc_list += objResultClass
-        println("Hit Number: " + count + " - Document Name: " + objResultClass.DocName.get("docid") + ", Score: " + score)
-        count += 1
-      }
-    }
-    println("\n")
-    reader.close()
-
-    return doc_list
-  }
-
-  def runQ13b(query: List[String]): ListBuffer[ResultClass] = {
-
-    var doc_list = new ListBuffer[ResultClass]()
-    val analyzer = new StandardAnalyzer
-
-    val index = new RAMDirectory
-    val config = new IndexWriterConfig(analyzer)
-    config.setOpenMode(OpenMode.CREATE)
-
-    val w = new IndexWriter(index, config)
-    indexDocuments(w)
-
-    w.close()
-
-    val queryString = "\"" + query(0) + "\" NOT \"" + query(1) + "\""
-    val q = new QueryParser("title", analyzer).parse(queryString)
-
-    val totalHits: Int = 10
-    val reader: IndexReader = DirectoryReader.open(index)
-    val searcher: IndexSearcher = new IndexSearcher(reader)
-
-    val collector = TopScoreDocCollector.create(totalHits)
-    searcher.search(q, collector)
-
-    val hits = collector.topDocs().scoreDocs
-
-    var count = 1
-    println("Query Results: Problem 13b")
-    System.out.println("Found " + hits.length + " hits.")
-    for (hit <- hits) {
-      val objResultClass: ResultClass = new ResultClass()
-      val docId: Int = hit.doc
-      val score = hit.score
-      if (score > 0) {
-        val doc = searcher.doc(docId)
-        objResultClass.DocName = doc
-        objResultClass.doc_score = score
-        doc_list += objResultClass
-        println("Hit Number: " + count + " - Document Name: " + objResultClass.DocName.get("docid") + ", Score: " + score)
-        count += 1
-      }
-    }
-    println("\n")
-    reader.close()
-
-    return doc_list
-  }
-
-  def runQ13c(query: List[String]): ListBuffer[ResultClass] = {
-
-    var doc_list = new ListBuffer[ResultClass]()
-    val analyzer = new StandardAnalyzer
-
-    val index = new RAMDirectory
-    val config = new IndexWriterConfig(analyzer)
-    config.setOpenMode(OpenMode.CREATE)
-
-    val w = new IndexWriter(index, config)
-    indexDocuments(w)
-
-    w.close()
-
-    val queryString = "\"" + query(0) + " " + query(1) + "\"~1"
-    val q = new QueryParser("title", analyzer).parse(queryString)
-
-    val totalHits: Int = 10
-    val reader: IndexReader = DirectoryReader.open(index)
-    val searcher: IndexSearcher = new IndexSearcher(reader)
-
-    val collector = TopScoreDocCollector.create(totalHits)
-    searcher.search(q, collector)
-
-    val hits = collector.topDocs().scoreDocs
-
-    var count = 1
-    println("Query Results: Problem 13c")
-    System.out.println("Found " + hits.length + " hits.")
-    for (hit <- hits) {
-      val objResultClass: ResultClass = new ResultClass()
-      val docId: Int = hit.doc
-      val score = hit.score
-      if (score > 0) {
-        val doc = searcher.doc(docId)
-        objResultClass.DocName = doc
-        objResultClass.doc_score = score
-        doc_list += objResultClass
-        println("Hit Number: " + count + " - Document Name: " + objResultClass.DocName.get("docid") + ", Score: " + score)
-        count += 1
-      }
-    }
-    println("\n")
-    reader.close()
-
-    return doc_list
-  }
-
 }
