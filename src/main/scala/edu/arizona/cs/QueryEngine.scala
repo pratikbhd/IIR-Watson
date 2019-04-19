@@ -47,7 +47,9 @@ class ibmWatson() {
   // Indexing related
   val filePath = "/Users/pratikbhandari/Documents/UofA/Semester II/Classes/CSC 583 - Text Retrieval and Web Search/Project/Project1/testFolder"
   val indexDir = "indexDir"
+  val questionFile = "questions.txt"
   var isIndexed = false
+  var accuracyDoc = false
 
   // Flags for category and content indexing
   var printCategory = false
@@ -71,61 +73,129 @@ class ibmWatson() {
     config.setOpenMode(OpenMode.CREATE)
     val w = new IndexWriter(index, config)
 
-    // First execute the indexing operation
-    result = performIndexing(w)
+      // First execute the indexing operation
+      result = performIndexing(w)
+
 
     // Query the user about the task they want to perform
     while (!loopFlag) {
 
       // Ask the user about what they want to do
-      println("1. Calculate the accuracy of the model.")
+      println("\n1. Calculate the accuracy of the model.")
       println("2. Enter search query on naive model.")
-      println("3. Exit")
+      println("3. Calculate the accuracy with 'Categories' included.")
+      println("4. Exit")
       println("Please enter the desired option number:")
 
       // Get the user's input
       val userInput = StdIn.readLine().toInt
 
       userInput match {
-        case 1 => checkAccuracy()
-        case 2 => searchNaive()
-        case 3 => loopFlag = true
+        case 1 => checkAccuracy(index, analyzer)
+        case 2 => searchNaive(index, analyzer)
+        case 3 => checkBetterAccuracy(index, analyzer)
+        case 4 => loopFlag = true
         case invIp => println("Invalid input: " + invIp.toString)
       }
     }
-
-//    val testQuery = "The practice of pre-authorizing presidential use of force dates to a 1955 resolution re: this island near mainland China"
-//    val queryStr = testQuery.toLowerCase().replaceAll("""[\p{Punct}&&[^.]]""", "")
-//    val totalHits = 20
-//
-//    val q = new QueryParser("CONTENTS", analyzer).parse(queryStr)
-//    val reader: IndexReader = DirectoryReader.open(index)
-//    val searcher: IndexSearcher = new IndexSearcher(reader)
-//    val collector = TopScoreDocCollector.create(totalHits)
-//    searcher.search(q, collector)
-//    val hits = collector.topDocs().scoreDocs
-//
-//    for (hit <- hits) {
-//      val docId = hit.doc
-//      val score = hit.score
-//      if (score > 0) {
-//        val doc = searcher.doc(docId)
-//        println(doc.get("TITLE") + "\t" + score)
-//      }
-//    }
-//    reader.close()
-
   }
 
-  def checkAccuracy(): Unit =
+  def checkAccuracy(index: FSDirectory, analyzer: StandardAnalyzer): Unit =
   {
+    if (!accuracyDoc)
+    {
+      // Create a new document
+      val questionSource = Source.fromFile(questionFile)
+      var nextUp = "cat"
+      var categ = ""
+      var answer = ""
+      var query = ""
+      var totalCount = 0
+      var matchCount = 0
+      for (line <- questionSource.getLines)
+      {
+        if (nextUp == "cat")
+        {
+          categ = line.toLowerCase().replaceAll("""[\p{Punct}&&[^.]]""", "")
+          nextUp = "query"
+        }
+        else if (nextUp == "query")
+        {
+          query = line.toLowerCase().replaceAll("""[\p{Punct}&&[^.]]""", "")
+          nextUp = "answer"
+        }
+        else if (nextUp == "answer")
+        {
+          answer = line.toLowerCase().replaceAll("""[\p{Punct}&&[^.]]""", "")
+          nextUp = "blank"
+        }
+        else if (nextUp == "blank")
+        {
+//          println(answer)
+//          println(categ)
+//          println(query)
+//          nextUp = "cat"
+          val hitCount = 1
+          val q = new QueryParser("CONTENTS", analyzer).parse(query)
+          val reader: IndexReader = DirectoryReader.open(index)
+          val searcher: IndexSearcher = new IndexSearcher(reader)
+          val collector = TopScoreDocCollector.create(hitCount)
+          searcher.search(q, collector)
+          val hits = collector.topDocs().scoreDocs
 
-
+          for (hit <- hits)
+          {
+            val docId = hit.doc
+            val score = hit.score
+            if (score > 0)
+            {
+              val doc = searcher.doc(docId)
+              println(doc.get("TITLE"))
+              println(answer)
+              if (doc.get("TITLE") == answer)
+              {
+                matchCount += 1
+              }
+            }
+          }
+          totalCount += 1
+          reader.close()
+          nextUp = "cat"
+        }
+      }
+      val accuracyPt = matchCount.toFloat/totalCount
+      println(matchCount)
+      println("Accuracy of the model using Precision at 1 (P@1) is: " + accuracyPt*100)
+      questionSource.close
+//      accuracyDoc = true
+    }
   }
 
-  def searchNaive(): Unit =
+  def searchNaive(index: FSDirectory, analyzer: StandardAnalyzer): Unit =
   {
-    
+    val testQuery = "Indonesia's largest lizard, it's protected from poachers, though we wish it could breathe fire to do the job itself"
+    val queryStr = testQuery.toLowerCase().replaceAll("""[\p{Punct}&&[^.]]""", "")
+    val totalHits = 20
+
+    val q = new QueryParser("CONTENTS", analyzer).parse(queryStr)
+    val reader: IndexReader = DirectoryReader.open(index)
+    val searcher: IndexSearcher = new IndexSearcher(reader)
+    val collector = TopScoreDocCollector.create(totalHits)
+    searcher.search(q, collector)
+    val hits = collector.topDocs().scoreDocs
+
+    for (hit <- hits)
+    {
+      val docId = hit.doc
+      val score = hit.score
+      if (score > 0)
+      {
+        val doc = searcher.doc(docId)
+        println(doc.get("TITLE") + "\t" + score)
+      }
+    }
+
+    reader.close()
 
   }
 
@@ -133,7 +203,7 @@ class ibmWatson() {
   {
     // First, check if the documents have already been indexed
     val indexDr = new File(indexDir)
-    if (indexDr.exists())
+    if (indexDr.exists)
     {
       isIndexed = true
     }
@@ -144,6 +214,9 @@ class ibmWatson() {
       println("Indexing document collection for the first time. Please wait...")
       indexDocuments(w)
       println("Indexing Complete!")
+    }
+    else {
+      println("Documents have already been indexed. Moving on. . .")
     }
 
     return 1
@@ -312,7 +385,7 @@ object QueryEngine
   def main(args: Array[String]): Unit = {
 
     // Welcome Message
-    println("######################################################")
+    println("\n######################################################")
     println("######################################################\n")
     println("Welcome to IBM Watson - The Course Project for CSC 583\n")
     println("######################################################")
