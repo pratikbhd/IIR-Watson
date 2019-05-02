@@ -12,3 +12,5 @@ Two models are available for the user to choose from:
 
 1. A naive model - P@1 of 19
 2. An improved model - P@1 of 29
+
+Link to the Index Folders: https://arizona.box.com/s/gborj3bt5u0pjmwxlz5o71zti9ns0itn
