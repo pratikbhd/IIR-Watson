@@ -234,16 +234,22 @@ class ibmWatson() {
             if (score > 0) {
               val doc = searcher.doc(docId)
               println("Estimated answer: " + doc.get("TITLE"))
-//              reRankScore = reRank(doc.get("TITLE"), doc.get("CONTENTSRAW"), query)
+              reRankScore = reRank(doc.get("TITLE"), doc.get("CONTENTSRAW"), query)
 //              println(reRankScore)
-//              docScoreMap(reRankScore) = doc.get("TITLE")
-                if (answerList.contains(doc.get("TITLE")) & index == 0) {
+              docScoreMap(reRankScore) = doc.get("TITLE")
+              if (answerList.contains(doc.get("TITLE")) & index == 0) {
                   isMatched = true
                   matchCount += 1
                 }
                 index += 1
               }
             }
+            if (!isMatched) {
+              if (answerList.contains(docScoreMap(docScoreMap.keysIterator.max))) {
+                println("MATCHED!!!")
+                matchCount += 1
+              }
+          }
           totalCount += 1
           nextUp = "cat"
         }
@@ -608,9 +614,9 @@ class ibmWatson() {
       if (score > 0) {
         val doc = searcher.doc(docId)
         println(doc.get("TITLE") + ":\t" + score)
-//        reRankScore = reRank(doc.get("TITLE"), doc.get("CONTENTSRAW"), query)
-//        println(reRankScore)
-//        docScoreMap(reRankScore) = doc.get("TITLE")
+//       reRankScore = reRank(doc.get("TITLE"), doc.get("CONTENTSRAW"), userQuery)
+//       println(reRankScore)
+//       docScoreMap(reRankScore) = doc.get("TITLE")
       }
     }
     reader.close()

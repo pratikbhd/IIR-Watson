@@ -4,7 +4,7 @@
 		module="watsonproject$sources"
 		revision="1.0"
 		status="integration"
-		publication="20190501023319"
+		publication="20190501232951"
 	/>
 	<configurations>
 		<conf name="compile" visibility="public" description=""/>
