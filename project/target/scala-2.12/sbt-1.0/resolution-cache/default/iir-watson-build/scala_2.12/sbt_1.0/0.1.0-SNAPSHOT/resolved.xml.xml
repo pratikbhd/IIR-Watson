@@ -4,7 +4,7 @@
 		module="iir-watson-build"
 		revision="0.1.0-SNAPSHOT"
 		status="integration"
-		publication="20190418145852"
+		publication="20190501023003"
 		e:sbtVersion="1.0" e:scalaVersion="2.12"
 	>
 		<description>

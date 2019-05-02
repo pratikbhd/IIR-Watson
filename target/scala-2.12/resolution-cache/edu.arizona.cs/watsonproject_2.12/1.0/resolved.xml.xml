@@ -4,7 +4,7 @@
 		module="watsonproject_2.12"
 		revision="1.0"
 		status="integration"
-		publication="20190331235141"
+		publication="20190501023318"
 	>
 		<description>
 		watsonProject
@@ -35,7 +35,14 @@
 		<dependency org="org.apache.lucene" name="lucene-core" rev="7.7.1" conf="compile->default(compile)"/>
 		<dependency org="org.apache.lucene" name="lucene-queryparser" rev="7.7.1" conf="compile->default(compile)"/>
 		<dependency org="org.apache.lucene" name="lucene-analyzers-common" rev="7.7.1" conf="compile->default(compile)"/>
+		<dependency org="org.apache.lucene" name="lucene-highlighter" rev="7.7.1" conf="compile->default(compile)"/>
 		<dependency org="org.scalactic" name="scalactic_2.12" rev="3.0.5" conf="compile->default(compile)"/>
 		<dependency org="org.scalatest" name="scalatest_2.12" rev="3.0.5" conf="test->default(compile)"/>
+		<dependency org="org.slf4j" name="slf4j-api" rev="1.7.10" conf="compile->default(compile)"/>
+		<dependency org="org.clulab" name="processors-main_2.12" rev="7.4.2" conf="compile->default(compile)"/>
+		<dependency org="org.clulab" name="processors-corenlp_2.12" rev="7.4.2" conf="compile->default(compile)"/>
+		<dependency org="org.clulab" name="processors-odin_2.12" rev="7.4.2" conf="compile->default(compile)"/>
+		<dependency org="org.clulab" name="processors-modelsmain_2.12" rev="7.4.2" conf="compile->default(compile)"/>
+		<dependency org="org.clulab" name="processors-modelscorenlp_2.12" rev="7.4.2" conf="compile->default(compile)"/>
 	</dependencies>
 </ivy-module>
